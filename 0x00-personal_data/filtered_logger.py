@@ -7,12 +7,8 @@ import logging
 import re
 from typing import List, Tuple
 
-# Define filter_datum and RedactingFormatter if they are in the same file
-# (Assuming previous code with filter_datum and RedactingFormatter is already in this file)
-
-PII_FIELDS: Tuple[str, ...] = (
-    "name", "email", "phone", "ssn", "password"
-)
+# Define sensitive fields to be redacted
+PII_FIELDS: Tuple[str, ...] = ("name", "email", "phone", "ssn", "password")
 
 
 def filter_datum(fields: List[str], redaction: str, message: str,
