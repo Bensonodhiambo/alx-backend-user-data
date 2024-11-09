@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-Module for filtering log messages and logging sensitive information.
+Module for logging user data with sensitive information obfuscation.
 """
 
 import logging
 import re
-from typing import List
+from typing import List, Tuple
+
+# Define filter_datum and RedactingFormatter if they are in the same file
+# (Assuming previous code with filter_datum and RedactingFormatter is already in this file)
+
+PII_FIELDS: Tuple[str, ...] = (
+    "name", "email", "phone", "ssn", "password"
+)
 
 
-def filter_datum(fields: List[str], redaction: str, message: str, separator: str) -> str:
+def filter_datum(fields: List[str], redaction: str, message: str,
+                 separator: str) -> str:
     """
     Obfuscates specified fields in a log message.
-
-    Args:
-        fields: List of fields to obfuscate.
-        redaction: The string to replace the field values.
-        message: The log message to process.
-        separator: The separator character in the log message.
-
-    Returns:
-        The obfuscated log message as a string.
     """
     for field in fields:
-        message = re.sub(f"{field}=[^{separator}]+", f"{field}={redaction}", message)
+        message = re.sub(f"{field}=[^{separator}]+", f"{field}={redaction}",
+                         message)
     return message
 
 
@@ -41,12 +41,32 @@ class RedactingFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """
         Format the log record to redact sensitive information.
-
-        Args:
-            record: The log record to format.
-
-        Returns:
-            A formatted log string with sensitive fields redacted.
         """
-        record.msg = filter_datum(self.fields, self.REDACTION, record.getMessage(), self.SEPARATOR)
+        record.msg = filter_datum(self.fields, self.REDACTION,
+                                  record.getMessage(), self.SEPARATOR)
         return super().format(record)
+
+
+def get_logger() -> logging.Logger:
+    """
+    Creates and configures a logger named 'user_data'.
+
+    Returns:
+        logging.Logger: Configured logger instance with sensitive data
+                        obfuscation.
+    """
+    # Create a logger with the specified name
+    logger = logging.getLogger("user_data")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False  # Prevent log propagation
+
+    # Create a StreamHandler with RedactingFormatter using PII_FIELDS
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(
+        RedactingFormatter(fields=PII_FIELDS)
+    )
+
+    # Add the StreamHandler to the logger
+    logger.addHandler(stream_handler)
+
+    return logger
