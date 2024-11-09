@@ -1,68 +1,30 @@
 #!/usr/bin/env python3
 """
-Module for logging user data with sensitive information obfuscation.
+Module for securely connecting to a MySQL database.
 """
 
-import logging
-import re
-from typing import List, Tuple
-
-# Define sensitive fields to be redacted
-PII_FIELDS: Tuple[str, ...] = ("name", "email", "phone", "ssn", "password")
+import os
+import mysql.connector
+from mysql.connector import connection
 
 
-def filter_datum(fields: List[str], redaction: str, message: str,
-                 separator: str) -> str:
+def get_db() -> connection.MySQLConnection:
     """
-    Obfuscates specified fields in a log message.
-    """
-    for field in fields:
-        message = re.sub(f"{field}=[^{separator}]+", f"{field}={redaction}",
-                         message)
-    return message
-
-
-class RedactingFormatter(logging.Formatter):
-    """Redacting Formatter class for logging sensitive information."""
-
-    REDACTION = "***"
-    FORMAT = "[HOLBERTON] %(name)s %(levelname)s %(asctime)-15s: %(message)s"
-    SEPARATOR = ";"
-
-    def __init__(self, fields: List[str]):
-        """Initialize the formatter with fields to be redacted."""
-        super(RedactingFormatter, self).__init__(self.FORMAT)
-        self.fields = fields
-
-    def format(self, record: logging.LogRecord) -> str:
-        """
-        Format the log record to redact sensitive information.
-        """
-        record.msg = filter_datum(self.fields, self.REDACTION,
-                                  record.getMessage(), self.SEPARATOR)
-        return super().format(record)
-
-
-def get_logger() -> logging.Logger:
-    """
-    Creates and configures a logger named 'user_data'.
+    Connects to a MySQL database using credentials from environment variables.
 
     Returns:
-        logging.Logger: Configured logger instance with sensitive data
-                        obfuscation.
+        mysql.connector.connection.MySQLConnection: Database connection object.
     """
-    # Create a logger with the specified name
-    logger = logging.getLogger("user_data")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False  # Prevent log propagation
+    # Get environment variables with default values
+    db_username = os.getenv("PERSONAL_DATA_DB_USERNAME", "root")
+    db_password = os.getenv("PERSONAL_DATA_DB_PASSWORD", "")
+    db_host = os.getenv("PERSONAL_DATA_DB_HOST", "localhost")
+    db_name = os.getenv("PERSONAL_DATA_DB_NAME")  # Required to be set in env
 
-    # Create a StreamHandler with RedactingFormatter using PII_FIELDS
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(
-        RedactingFormatter(fields=PII_FIELDS)
+    # Establish and return a database connection
+    return mysql.connector.connect(
+        user=db_username,
+        password=db_password,
+        host=db_host,
+        database=db_name
     )
-
-    # Add the StreamHandler to the logger
-    logger.addHandler(stream_handler)
-
-    return logger
